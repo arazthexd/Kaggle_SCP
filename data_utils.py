@@ -59,7 +59,7 @@ class SCPDataSet(Dataset): # TODO: Totally incomplete
             "smiles": smiles
         }
         return out_dic
-        
+
 class SelectExpressions(object):
     def __init__(self, gene_ids="all") -> None:
         self.genes_ids = gene_ids
