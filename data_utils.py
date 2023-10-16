@@ -12,6 +12,8 @@ from rdkit.Chem import AllChem
 
 import os
 
+from operator import itemgetter
+
 import torch
 from torch.utils.data import Dataset
 
@@ -53,66 +55,46 @@ def stratified_split(stratify, test_size, seed):
 
 class SCPDataSet(Dataset): # TODO: Totally incomplete
 
-    def __init__(self, root_dir=".\data", 
-                 file_names=None,
-                 genes_list=None) -> None:
+    def __init__(self, diff_exp_df) -> None:
         super().__init__()
 
-        # Define filenames, update in case of input, and define root_dir
-        file_names_default = { # TODO: Other file types, if needed...
-            "diff_expression": "de_train.parquet",
-            "multiome": "multiome_train.parquet"
-        }
-        self.root_dir = root_dir
-        if file_names:
-            self.file_names = file_names_default.update(file_names)
-        else:
-            self.file_names = file_names_default
-
-        self.diff_exps_df = dd.read_parquet(f"{self.root_dir}/{self.file_names['diff_expression']}")
-        self.multiome_df = dd.read_parquet(f"{self.root_dir}/{self.file_names['multiome']}", n_)
+        self.cell_types = diff_exp_df["cell_type"].to_list()
+        self.sm_names = diff_exp_df["sm_name"].to_list()
+        self.expressions = torch.from_numpy(diff_exp_df.drop(["cell_type", "sm_name", "sm_lincs_id", 
+                                                              "SMILES", "control"], axis=1).values)
 
         # Determine the list of the gene names used in the dataset:
-        if not genes_list:
-            print("Expression columns not given, looking for file...")
-            if not os.path.exists("config/genes_list.txt"): # TODO: Decide the format
-                print("No file found for expression columns, dropping default meta columns...")
-                self.genes_list = self.diff_exps_df.drop(["cell_type", "sm_name", "sm_lincs_id", 
-                                                  "SMILES", "control"], axis=1).columns
-            else:
-                with open("config/genes_list.txt", "r") as f:
-                    self.genes_list = f.readlines()
-        else:
-            self.genes_list = genes_list
+        # if not genes_list:
+        #     print("Expression columns not given, looking for file...")
+        #     if not os.path.exists("config/genes_list.txt"): # TODO: Decide the format
+        #         print("No file found for expression columns, dropping default meta columns...")
+        #         self.genes_list = self.diff_exps_df.drop(["cell_type", "sm_name", "sm_lincs_id", 
+        #                                           "SMILES", "control"], axis=1).columns
+        #     else:
+        #         with open("config/genes_list.txt", "r") as f:
+        #             self.genes_list = f.readlines()
+        # else:
+        #     self.genes_list = genes_list
         
     def __len__(self):
-        return len(self.diff_exps_df)
+        return len(self.cell_type)
     
-    def __getitem__(self, index) -> torch.tensor:
-        
-        samples = self.diff_exps_df.iloc[index]
-        expression = torch.from_numpy(samples[self.genes_list].values.astype('float32'))
-        cell_type = samples["cell_type"].to_list() # TODO: For single index --> error
-        sm_name = samples["sm_name"].to_list()
-        smiles = samples["SMILES"].to_list()
-        out_dic = {
-            "expression": expression,
-            "cell_type": cell_type,
-            "sm_name": sm_name,
-            "smiles": smiles
-        }
-        return out_dic
+    def __getitem__(self, index) -> (list, list, torch.tensor):
+        cell_types = self.cell_types[index]
+        sm_names = self.sm_names[index]
+        expressions = self.expressions[index, :]
 
-class SelectExpressions(object):
-    def __init__(self, gene_ids="all") -> None:
-        self.genes_ids = gene_ids
+        return cell_types, sm_names, expressions
 
-    def __call__(self, sample_dic) -> torch.tensor:
-        out = sample_dic["expression"]
-        if self.genes_ids != "all":
-            out = out.index_select(dim=1, index=self.genes_ids)
-        return out
     
+class Sm2Smiles(object):
+    def __init__(self, sm_dict) -> None:
+        self.sm_dict = sm_dict
+
+    def __call__(self, sm_names) -> list:
+        smiles = list(itemgetter(*sm_names)(self.sm_dict))
+        return smiles
+
 class Smiles2Mol(object):
     def __init__(self) -> None:
         pass
