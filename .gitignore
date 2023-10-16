@@ -1,0 +1,9 @@
+data/adata_obs_meta.csv
+data/adata_train.parquet
+data/de_train.parquet
+data/id_map.csv
+data/lincs_small_molecules.csv
+data/multiome_obs_meta.csv
+data/multiome_train.parquet
+data/multiome_var_meta.csv
+data/sample_submission.csv
