@@ -6,6 +6,7 @@ import opendatasets as od
 
 import pandas as pd # TODO: We might need to use dask
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -77,14 +78,14 @@ class SCPDataSet(Dataset): # TODO: Totally incomplete
         #     self.genes_list = genes_list
         
     def __len__(self):
-        return len(self.cell_type)
+        return len(self.cell_types)
     
     def __getitem__(self, index) -> (list, list, torch.tensor):
         cell_types = self.cell_types[index]
         sm_names = self.sm_names[index]
         expressions = self.expressions[index, :]
 
-        return cell_types, sm_names, expressions
+        return cell_types, sm_names, expressions.float()
 
     
 class Sm2Smiles(object):
@@ -112,9 +113,23 @@ class Mol2Morgan(object):
         fps_list = [AllChem.GetMorganFingerprintAsBitVect(mol, self.radius, self.vec_bit) 
                     for mol in mol_list]
         out_tensor = torch.tensor(fps_list)
-        return out_tensor
+        return out_tensor.float()
 
+class Type2OneHot(object):
+    def __init__(self, types) -> None:
+        self.oh_encoder = OneHotEncoder(sparse_output=False)
 
+        if type(types) != np.array:
+            types = np.array(types)
+        self.oh_encoder.fit(types.reshape(-1, 1))
+        
+    def __call__(self, types) -> list:
+        if type(types) != np.array:
+            types = np.array(types)
+        encoded = self.oh_encoder.transform(types.reshape(-1, 1))
+        encoded = torch.tensor(encoded)
+
+        return encoded.float()
 
         
 
