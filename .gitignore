@@ -7,3 +7,9 @@ data/multiome_obs_meta.csv
 data/multiome_train.parquet
 data/multiome_var_meta.csv
 data/sample_submission.csv
+data/temp/B_cells_control_normalized.csv
+data/temp/Myeloid_cells_control_normalized.csv
+data/temp/NK_cells_control_normalized.csv
+data/temp/T_cells_CD4_control_normalized.csv
+data/temp/T_cells_CD8_control_normalized.csv
+data/temp/T_regulatory_cells_control_normalized.csv
