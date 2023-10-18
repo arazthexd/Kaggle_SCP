@@ -3,11 +3,12 @@ import pandas as pd
 import torch
 import torch.nn as nn
 
-from feature_extraction import *
+from features import *
 
 
-sm_smiles_dict = pd.read_csv("config/sm_smiles.csv").to_dict()["SMILES"]
 
+class NNRegressor(nn.Module):
+  pass
 
 class CombinerModel(nn.Module):
 
@@ -25,31 +26,33 @@ class CombinerModel(nn.Module):
     y = self.regressor(x_mol_enc, x_cell_enc)
 
     return y
-  
-class MolFPEncoder(nn.Module):
 
-  default_feature_extractor = [
-    Sm2Smiles(sm_smiles_dict), 
-    Smiles2Mol(), 
-    Mol2Morgan(vec_bit=2048, radius=3)
-  ]
+class VecEncoder(nn.Module):
 
-  def __init__(self, feature_extractor=default_feature_extractor) -> None:
-    super(MolFPEncoder, self).__init__()
+  def __init__(self, layer_sizes: list[int], drop_rate):
+    super(VecEncoder, self).__init__()
 
-    self.f_extractor = feature_extractor
+    self.layers = nn.ModuleList()
+    for i in range(len(layer_sizes)-1):
+      in_size, out_size = layer_sizes[i], layer_sizes[i+1]
+      layer = nn.Linear(in_size, out_size)
+      self.layers.append(layer)
     
-    # TODO REWRITE
+    self.activation = nn.ReLU()
+    self.drop_out = nn.Dropout(drop_rate)
 
-
-
-
+  def forward(self, x):
+    for layer in self.layers[:-1]:
+      x = layer(x)
+      x = self.activation(x)
+      x = self.drop_out(x)
+    if len(self.layers)==0:
+      return x
+     
+    x = self.layers[-1](x)
+    return x
 
     
-
-
-
-
 
 
 
