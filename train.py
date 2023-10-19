@@ -1,85 +1,115 @@
-import pandas as pd
-import torch
-import torch.nn as nn
-from tqdm import tqdm
+### IMPORTS ###
+from argparse import ArgumentParser
 
+import torch
+
+### FUNCTIONS ###
 def loss_fn(y_pred, y_true):
-    mse_loss = nn.MSELoss(reduction="none")
-    loss = mse_loss(y_pred, y_true)
-    loss = torch.mean(loss, dim=1)
+
+    loss = (y_true - y_pred) ** 2
+    loss = loss.mean(dim=1)
     loss = torch.sqrt(loss)
-    loss = torch.mean(loss, dim=0)
+    loss = loss.sum(dim=0)
 
     return loss
 
-def inference(val_loader, model, loss_fn, transforms_mol, transform_cell, device):
+def train_one_epoch(model, train_loader, loss_fn, 
+                    optimizer, device):
 
-    with torch.no_grad():
-        loss = 0
-
-        for i, batch in enumerate(val_loader):
-            cell_types, sm_names, expressions = batch
-            fps = list(sm_names).copy()
-            for t in transforms_mol:
-                fps = t(fps) # TODO: List of transforms, also as input
-            cell_types = transform_cell(cell_types)
-            fps = fps.to(device)
-            cell_types = cell_types.to(device)
-            expressions = expressions.to(device)
-            y_pred = model(fps, cell_types)
-            loss = loss_fn(y_pred, expressions)
-        
-        return loss
-
-def train(train_loader, val_loader, model, args, loss_fn, optimizer):
-    
-    lr = args['lr']
-    epochs = args['epochs']
-    transforms_mol = args['mol_transform']
-    transforms_cell = args['cell_transform']
-
-    if torch.cuda.is_available():
-        device = torch.device("cuda:0")
-        print(device)
-    else:
-        device = torch.device("cpu")
-
+    # Send model to device
     model.to(device)
 
-    train_losses, val_losses = [], []
-    for epoch in tqdm(range(epochs)):
-        model.train()
-        model.zero_grad()
+    # Set model to train mode
+    model.train()
+
+    # Iterate over batches and take optimization steps
+    losses = []
+    for batch in train_loader:
+
+        x_batch, y_batch = batch
+        y_batch = y_batch.to(device)
+        y_pred = model(x_batch, device) # TODO: Send to device the x in model?
+
+        loss = loss_fn(y_pred, y_batch)
         optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-        for i, batch in enumerate(train_loader):
-            cell_types, sm_names, expressions = batch
+        losses.append(loss)
+     
+    return losses
 
-            fps = list(sm_names)
-            for transform in transforms_mol:
-                fps = transform(fps)
-            fps = fps.to(device)
+def infer_model(model, data_loader, loss_fn, 
+                metrics: dict, device, calculate_loss=False):
 
-            for transform in transforms_cell:
-                cell_types = transform(cell_types)
-            cell_types = cell_types.to(device)
-
-            expressions = expressions.to(device)
-
-            y_pred = model(fps, cell_types)
-            loss = loss_fn(y_pred, expressions)
-            loss.backward()
-            optimizer.step()
-        
-        model.eval()
-        train_losses.append(loss.cpu().detach().numpy())
-        val_losses.append(inference(val_loader, model, loss_fn, transforms_mol, 
-                                    transforms_cell, device).cpu().detach().numpy())
+    data_len = len(data_loader)
     
-    return train_losses, val_losses
+    # Send model to device
+    model.to(device)
 
+    # Set model to evaluation mode
+    model.eval()
+
+    # Create Output Dict
+    metric_values = dict()
+    for metric_name in metrics:
+        metric_values[metric_name] = 0
+
+    with torch.no_grad():
+        
+        losses = []
+        for batch in data_loader:
+
+            x_batch, y_batch = batch
+            y_batch = y_batch.to(device)
+            y_pred = model(x_batch, device)
+
+            if calculate_loss:
+                loss = loss_fn(y_pred, y_batch)
+                losses.append(loss)
+
+            for metric_name in metrics:
+                metric_value = metrics[metric_name](y_pred, y_batch)
+                metric_values[metric_name] += (metric_value / data_len)
+
+    if calculate_loss:
+        return losses, metric_values
+    else:
+        return metric_values
+        
+def train_many_epochs(model, train_loader, val_loader, epochs,
+                      loss_fn, optimizer, scheduler=None, 
+                      metrics=[], writer=None, device="cpu"):
+    
+    for epoch in range(epochs):
+
+        # Train model for one epoch and calculate metrics for the 
+        # resulting model...
+        train_b_losses = train_one_epoch(model, train_loader, loss_fn, 
+                                         optimizer, device)
+        train_b_metrics = infer_model(model, train_loader, loss_fn, 
+                                      metrics, device)
+        val_b_losses, val_b_metrics = infer_model(model, val_loader, loss_fn, 
+                                    metrics, device, calculate_loss=True)
+        
+        epoch_train_loss = sum(train_b_losses) / len(train_loader)
+        epoch_val_loss = sum(val_b_losses) / len(val_loader)
+        if writer:
+            writer.add_scaler("Training Loss", epoch_train_loss, global_step=epoch)
+            writer.add_scaler("Validation Loss", epoch_val_loss, global_step=epoch)
+        if scheduler:
+            scheduler.step(epoch_train_loss)
 
 
 
 if __name__ == "__main__":
-    pass
+
+    # Parse input arguments:
+    argparser = ArgumentParser()
+    argparser.add_argument()
+    ### TODO: FINISH
+
+
+
+
+

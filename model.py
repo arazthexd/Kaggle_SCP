@@ -8,7 +8,7 @@ from features import *
 
 
 class NNRegressor(nn.Module):
-  pass
+  pass # TODO: Write!
 
 class CombinerModel(nn.Module):
 
@@ -23,13 +23,13 @@ class CombinerModel(nn.Module):
     
     x_mol_enc = self.mol_encoder(x_mol)
     x_cell_enc = self.cell_encoder(x_cell)
-    y = self.regressor(x_mol_enc, x_cell_enc)
+    y = self.regressor(torch.concat((x_mol_enc, x_cell_enc), dim=1))
 
     return y
 
 class VecEncoder(nn.Module):
 
-  def __init__(self, layer_sizes: list[int], drop_rate):
+  def __init__(self, layer_sizes: list[int], drop_rate=0):
     super(VecEncoder, self).__init__()
 
     self.layers = nn.ModuleList()
@@ -38,20 +38,63 @@ class VecEncoder(nn.Module):
       layer = nn.Linear(in_size, out_size)
       self.layers.append(layer)
     
-    self.activation = nn.ReLU()
+    self.activation = nn.Tanh()
     self.drop_out = nn.Dropout(drop_rate)
 
   def forward(self, x):
-    for layer in self.layers[:-1]:
+
+    if len(self.layers) == 0:
+      return x
+    
+    if len(self.layers) == 1:
+      x = self.layers[0](x)
+      return x
+    
+    x = self.layers[0](x)
+    x = self.activation(x)
+    for layer in self.layers[1:-1]:
       x = layer(x)
       x = self.activation(x)
       x = self.drop_out(x)
-    if len(self.layers)==0:
-      return x
-     
+      
     x = self.layers[-1](x)
+    
+    
     return x
+  
+class VecAutoEncoder(nn.Module):
 
+  def __init__(self, layer_sizes: list[int]):
+    
+    self.encoder = nn.ModuleList()
+    for s1, s2 in zip(layer_sizes[:-1], layer_sizes[1:]):
+      self.encoder.append(
+        nn.Sequential(
+          nn.Linear(s1, s2),
+          nn.ReLU(),
+          nn.Dropout(0.1)
+        )
+      )
+    
+    self.decoder = nn.ModuleList()
+    for s1, s2 in zip(layer_sizes[-1:0:-1], layer_sizes[-2::-1]):
+      self.decoder.append(
+        nn.Sequential(
+          nn.Linear(s1, s2),
+          nn.ReLU(),
+          nn.Dropout(0.1)
+        )
+      )
+    
+  def forward(self, x):
+    
+    for enc_layer in self.encoder:
+      x = enc_layer(x)
+
+    for dec_layer in self.decoder:
+      x = dec_layer(x)
+
+    return x
     
 
 
