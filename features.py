@@ -5,18 +5,15 @@ import dask.dataframe as dd
 import opendatasets as od
 
 import pandas as pd # TODO: We might need to use dask
-from sklearn.model_selection import train_test_split
+
 from sklearn.preprocessing import OneHotEncoder
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-import os
-
 from operator import itemgetter
 
 import torch
-from torch.utils.data import Dataset
 
 
 class Sm2Smiles(object):
