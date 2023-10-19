@@ -85,7 +85,7 @@ class SCPDataSet(Dataset): # TODO: Totally incomplete
         sm_names = self.sm_names[index]
         expressions = self.expressions[index, :]
 
-        return cell_types, sm_names, expressions.float()
+        return (cell_types, sm_names), expressions.float()
 
     
 class Sm2Smiles(object):
