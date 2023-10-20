@@ -1,6 +1,8 @@
 ### IMPORTS ###
 from argparse import ArgumentParser
 
+from tqdm import tqdm
+
 import torch
 
 ### FUNCTIONS ###
@@ -9,7 +11,7 @@ def loss_fn(y_pred, y_true):
     loss = (y_true - y_pred) ** 2
     loss = loss.mean(dim=1)
     loss = torch.sqrt(loss)
-    loss = loss.sum(dim=0)
+    loss = loss.mean(dim=0)
 
     return loss
 
@@ -28,7 +30,7 @@ def train_one_epoch(model, train_loader, loss_fn,
 
         x_batch, y_batch = batch
         y_batch = y_batch.to(device)
-        y_pred = model(x_batch, device) # TODO: Send to device the x in model?
+        y_pred = model(*x_batch, device) # TODO: Send to device the x in model?
 
         loss = loss_fn(y_pred, y_batch)
         optimizer.zero_grad()
@@ -62,7 +64,7 @@ def infer_model(model, data_loader, loss_fn,
 
             x_batch, y_batch = batch
             y_batch = y_batch.to(device)
-            y_pred = model(x_batch, device)
+            y_pred = model(*x_batch, device)
 
             if calculate_loss:
                 loss = loss_fn(y_pred, y_batch)
@@ -81,7 +83,7 @@ def train_many_epochs(model, train_loader, val_loader, epochs,
                       loss_fn, optimizer, scheduler=None, 
                       metrics=[], writer=None, device="cpu"):
     
-    for epoch in range(epochs):
+    for epoch in tqdm(range(epochs)):
 
         # Train model for one epoch and calculate metrics for the 
         # resulting model...
@@ -92,11 +94,11 @@ def train_many_epochs(model, train_loader, val_loader, epochs,
         val_b_losses, val_b_metrics = infer_model(model, val_loader, loss_fn, 
                                     metrics, device, calculate_loss=True)
         
-        epoch_train_loss = sum(train_b_losses) / len(train_loader)
-        epoch_val_loss = sum(val_b_losses) / len(val_loader)
+        epoch_train_loss = sum(train_b_losses) / len(train_b_losses)
+        epoch_val_loss = sum(val_b_losses) / len(val_b_losses)
         if writer:
-            writer.add_scaler("Training Loss", epoch_train_loss, global_step=epoch)
-            writer.add_scaler("Validation Loss", epoch_val_loss, global_step=epoch)
+            writer.add_scalar("Training Loss", epoch_train_loss, global_step=epoch)
+            writer.add_scalar("Validation Loss", epoch_val_loss, global_step=epoch)
         if scheduler:
             scheduler.step(epoch_train_loss)
 
