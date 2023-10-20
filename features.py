@@ -1,4 +1,6 @@
 from typing import Any
+import copy
+
 import numpy as np
 import dask.dataframe as dd
 
@@ -15,10 +17,25 @@ from operator import itemgetter
 
 import torch
 
+class TransformList(object):
+
+    def __init__(self, transform_list):
+        self.transform_list = transform_list
+    
+    def __call__(self, x):
+        
+        y = x.copy()
+        for transform in self.transform_list:
+            y = transform(y)
+        return y
 
 class Sm2Smiles(object):
-    def __init__(self, sm_dict) -> None:
-        self.sm_dict = sm_dict
+    def __init__(self, sm_dict_or_path, mode="dict") -> None:
+        if mode == "dict":
+            self.sm_dict = sm_dict_or_path
+        elif mode == "path":
+            df = pd.read_csv(sm_dict_or_path)
+            self.sm_dict = df.set_index("sm_name").to_dict()["SMILES"]
 
     def __call__(self, sm_names) -> list:
         smiles = list(itemgetter(*sm_names)(self.sm_dict))

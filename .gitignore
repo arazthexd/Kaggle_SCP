@@ -21,3 +21,9 @@ data/temp/T_cells_CD8_control_mean.csv
 data/temp/T_regulatory_cells_control_mean.csv
 temp/ini_model.pkl
 temp/ini_opt.pkl
+data/temp/NK_exp_multiome.csv
+data/temp/B_cells_exp_multiome.csv
+data/temp/Myeloid_exp_multiome.csv
+data/temp/T_cells_CD4_exp_multiome.csv
+data/temp/T_cells_CD8_exp_multiome.csv
+data/temp/T_regulatory_exp_multiome.csv

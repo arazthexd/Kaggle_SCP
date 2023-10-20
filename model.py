@@ -19,8 +19,9 @@ class CombinerModel(nn.Module):
     self.cell_encoder = cell_encoder
     self.regressor = regressor
 
-  def forward(self, x_mol, x_cell):
+  def forward(self, x_mol, x_cell, device):
     
+    x_mol, x_cell = x_mol.to(device), x_cell.to(device)
     x_mol_enc = self.mol_encoder(x_mol)
     x_cell_enc = self.cell_encoder(x_cell)
     y = self.regressor(torch.concat((x_mol_enc, x_cell_enc), dim=1))
