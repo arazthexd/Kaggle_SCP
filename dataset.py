@@ -50,7 +50,7 @@ class DEDataset(Dataset):
             if contains_y:
                 self.expressions = torch.tensor(
                     input_df.drop(meta_columns, axis=1).values
-                )
+                ).float()
 
             self.sm_names = input_df["sm_name"].to_list()
             self.cell_names = input_df["cell_type"].to_list()
@@ -72,12 +72,13 @@ class DEDataset(Dataset):
         self.sm_out_feature = self.sm_names
         self.cell_out_feature = self.cell_names
         self.return_y = True
+        self.ae_mode = False
 
 
     def __len__(self):
         return len(self.sm_names)
 
-    def configure(self, sm_out_feature=None, cell_out_feature=None, return_y=None):
+    def configure(self, sm_out_feature=None, cell_out_feature=None, return_y=None, ae_mode=False):
         if sm_out_feature:
             if sm_out_feature == "sm_name":
                 self.sm_out_feature = self.sm_names
@@ -90,9 +91,20 @@ class DEDataset(Dataset):
                 self.cell_out_feature = self.cell_feats[cell_out_feature]
         if return_y != None:
             self.return_y = return_y
+        
+        self.ae_mode = ae_mode
     
     def __getitem__(self, index):
         
+        if self.ae_mode == "sm":
+            x = (self.sm_out_feature[index], )
+            y = self.sm_out_feature[index]
+            return x, y
+        elif self.ae_mode == "cell":
+            x = (self.cell_out_feature[index], )
+            y = self.cell_out_feature[index]
+            return x, y
+
         x = (self.sm_out_feature[index], self.cell_out_feature[index])
         if self.return_y == True:
             y = self.expressions[index, :]

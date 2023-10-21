@@ -75,3 +75,33 @@ class Type2OneHot(object):
         encoded = torch.tensor(encoded)
 
         return encoded.float()
+
+class Type2Index(object): # TODO: Unfinished
+    def __init__(self, types) -> None:
+        self.oh_encoder = OneHotEncoder(sparse_output=False)
+
+        if type(types) != np.array:
+            types = np.array(types)
+        self.oh_encoder.fit(types.reshape(-1, 1))
+    
+class CType2CSVEncoding(object):
+
+    def __init__(self, ctypes, filenames):
+
+        self.ctypes = ctypes
+        self.files = [pd.read_csv(fname) for fname in filenames]
+        self.enc_list = [f["0"].to_list() for f in self.files]
+
+    def __call__(self, cell_names):
+        
+        with torch.no_grad():
+            encodings = []
+            for cell_name in cell_names:
+                encodings.append(torch.tensor(self.enc_list[self.ctypes.index(cell_name)]).reshape(1, -1))
+            
+            out = torch.concat(encodings, dim=0)
+        return out.float()
+        
+        
+
+

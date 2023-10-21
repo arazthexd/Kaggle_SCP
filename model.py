@@ -18,6 +18,7 @@ class CombinerModel(nn.Module):
     self.mol_encoder = mol_encoder
     self.cell_encoder = cell_encoder
     self.regressor = regressor
+    self.float()
 
   def forward(self, x_mol, x_cell, device):
     
@@ -66,37 +67,75 @@ class VecEncoder(nn.Module):
 class VecAutoEncoder(nn.Module):
 
   def __init__(self, layer_sizes: list[int]):
+    super().__init__()
     
     self.encoder = nn.ModuleList()
-    for s1, s2 in zip(layer_sizes[:-1], layer_sizes[1:]):
+    for s1, s2 in zip(layer_sizes[:-2], layer_sizes[1:-1]):
       self.encoder.append(
         nn.Sequential(
           nn.Linear(s1, s2),
-          nn.ReLU(),
-          nn.Dropout(0.1)
+          nn.ReLU()
         )
       )
+    self.encoder.append(nn.Linear(layer_sizes[-2], layer_sizes[-1]))
     
     self.decoder = nn.ModuleList()
-    for s1, s2 in zip(layer_sizes[-1:0:-1], layer_sizes[-2::-1]):
+    for s1, s2 in zip(layer_sizes[-1:1:-1], layer_sizes[-2:0:-1]):
       self.decoder.append(
         nn.Sequential(
           nn.Linear(s1, s2),
-          nn.ReLU(),
-          nn.Dropout(0.1)
+          nn.ReLU()
         )
       )
+    self.decoder.append(nn.Linear(layer_sizes[1], layer_sizes[0]))
+
+    self.float()
     
-  def forward(self, x):
-    
+  def forward(self, x, device):
+
+    x = x.to(device)
+    x = self.encode(x, device)
+    x = self.decode(x, device)
+
+    return x.float()
+  
+  def encode(self, x, device="cpu"):
+
+    x = x.to(device)
     for enc_layer in self.encoder:
       x = enc_layer(x)
+    return x.float()
 
+  def decode(self, x, device="cpu"):
+
+    x = x.to(device)
     for dec_layer in self.decoder:
       x = dec_layer(x)
+    return x.float()
 
-    return x
+class VecAEEncoder(nn.Module):
+
+  def __init__(self, trained_ae, grads=False, device="cpu"):
+    super().__init__()
+
+    self.ae = trained_ae
+    self.calc_grads = grads
+    self.device = device
+
+    self.float()
+
+  def forward(self, x):
+
+    x = x.to(self.device)
+    if self.calc_grads == True:
+      x = self.ae.encode(x, self.device)
+    else:
+      with torch.no_grad():
+        x = self.ae.encode(x, self.device)
     
+    return x.float()
+
+
 
 
 
