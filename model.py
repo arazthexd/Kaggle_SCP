@@ -2,6 +2,7 @@ import pandas as pd
 
 import torch
 import torch.nn as nn
+from torch_geometric.data import Data
 
 from features import *
 
@@ -137,7 +138,14 @@ class VecAEEncoder(nn.Module):
 
 
 
+class ArazTest(nn.Module):
 
+  def __init__(self):
+    
+    dataData()
+
+  def forward(mol_emb, cell_emb, ):
+    pass
 
 
 class BasicModel(nn.Module):
