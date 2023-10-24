@@ -76,13 +76,14 @@ class Type2OneHot(object):
 
         return encoded.float()
 
-class Type2Index(object): # TODO: Unfinished
-    def __init__(self, types) -> None:
-        self.oh_encoder = OneHotEncoder(sparse_output=False)
+class NormCount2CPM(object):
+    
+    def __init__(self):
+        pass
 
-        if type(types) != np.array:
-            types = np.array(types)
-        self.oh_encoder.fit(types.reshape(-1, 1))
+    def __call__(self, norm_counts:torch.tensor):
+        return torch.exp(norm_counts)-1
+        
     
 class CType2CSVEncoding(object):
 
