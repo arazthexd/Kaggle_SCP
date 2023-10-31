@@ -64,6 +64,7 @@ def infer_model(model, data_loader, loss_fn,
 
             x_batch, y_batch = batch
             y_batch = y_batch.to(device)
+            print(x_batch)
             y_pred = model(*x_batch, device)
 
             if calculate_loss:

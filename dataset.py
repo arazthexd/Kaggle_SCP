@@ -104,6 +104,10 @@ class DEDataset(Dataset):
             x = (self.cell_out_feature[index], )
             y = self.cell_out_feature[index]
             return x, y
+        elif self.ae_mode == "de":
+            x = (self.expressions[index, :], )
+            y = self.expressions[index, :]
+            return x, y
 
         x = (self.sm_out_feature[index], self.cell_out_feature[index])
         if self.return_y == True:
