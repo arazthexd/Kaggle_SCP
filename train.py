@@ -6,7 +6,7 @@ from tqdm import tqdm
 import torch
 
 ### FUNCTIONS ###
-def loss_fn(y_pred, y_true):
+def loss_mrrmse(y_pred, y_true):
 
     loss = (y_true - y_pred) ** 2
     loss = loss.mean(dim=1)
@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
     # Parse input arguments:
     argparser = ArgumentParser()
-    argparser.add_argument()
+    argparser.add_argument("--config", type=str)
     ### TODO: FINISH
 
 
