@@ -6,7 +6,7 @@ from tqdm import tqdm
 import torch
 
 ### FUNCTIONS ###
-def loss_fn(y_pred, y_true):
+def loss_mrrmse(y_pred, y_true):
 
     loss = (y_true - y_pred) ** 2
     loss = loss.mean(dim=1)
@@ -64,6 +64,7 @@ def infer_model(model, data_loader, loss_fn,
 
             x_batch, y_batch = batch
             y_batch = y_batch.to(device)
+            print(x_batch)
             y_pred = model(*x_batch, device)
 
             if calculate_loss:
@@ -108,7 +109,7 @@ if __name__ == "__main__":
 
     # Parse input arguments:
     argparser = ArgumentParser()
-    argparser.add_argument()
+    argparser.add_argument("--config", type=str)
     ### TODO: FINISH
 
 
