@@ -40,3 +40,9 @@ data/temp/T_cells_CD4_filledna_hclust_input.csv
 data/temp/T_cells_CD8_filledna_hclust_input.csv
 data/temp/T_regulatory_filledna_hclust_input.csv
 notebooks/B_cells_cophenet_clusters
+data/temp/B_cells_normalized_filledna.csv
+data/temp/Myeloid_normalized_filledna.csv
+data/temp/NK_normalized_filledna.csv
+data/temp/T_cells_CD4_normalized_filledna.csv
+data/temp/T_cells_CD8_normalized_filledna.csv
+data/temp/T_regulatory_normalized_filledna.csv
