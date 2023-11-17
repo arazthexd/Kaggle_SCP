@@ -35,7 +35,7 @@ NK_filledna = mean_fillna(NK_exp_matrix)
 Myeloid_filledna = mean_fillna(Myeloid_exp_matrix)
 
 methods = ["single", "complete", "median", "average", "ward", "centroid"]
-metrics = ["euclidean", "cosine"]
+metrics = ["euclidean"]
 def hclust_eval(data, methods, metrics):
     '''
     clusters data using scipy.cluster.hierarchy.linkage 
