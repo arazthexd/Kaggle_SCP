@@ -28,7 +28,7 @@ class DataFrameDataset(Dataset):
             return
     
     def __len__(self):
-        return len(self.cell_types)
+        return len(self.df)
     
     def __getitem__(self, index):
 

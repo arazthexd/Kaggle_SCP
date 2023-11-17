@@ -68,3 +68,37 @@ class DEAutoEncoder(nn.Module):
     x = self.decoder(x)
     
     return x
+
+
+
+class GeneTransformer(nn.Module):
+    def __init__(self, d_model, n_heads, gene_num, ff_dim) -> None:
+        super().__init__()
+
+        self.d_model = d_model
+        self.emb_size = gene_num
+        self.n_heads = n_heads
+        self.emb = nn.Embedding(self.emb_size, self.d_model)
+        self.enc_1 = nn.TransformerEncoderLayer(self.d_model, nhead=self.n_heads, dim_feedforward=ff_dim)
+        self.enc_2 = nn.TransformerEncoderLayer(self.d_model, nhead=self.n_heads, dim_feedforward=ff_dim)
+        self.enc_3 = nn.TransformerEncoderLayer(self.d_model, nhead=self.n_heads, dim_feedforward=ff_dim)
+        self.dec_1 = nn.TransformerDecoderLayer(self.d_model, nhead=self.n_heads, dim_feedforward=ff_dim)
+        self.dec_2 = nn.TransformerDecoderLayer(self.d_model, nhead=self.n_heads, dim_feedforward=ff_dim)
+        self.mha_custom = nn.MultiheadAttention(self.d_model, num_heads=self.n_heads)
+
+    def forward(self, x_enc, x_dec, x_value):
+        
+        x_enc = self.encode(x_enc)
+        x_dec = self.decode(x_dec, x_enc)
+        x = self.mha(query=x_dec, key=x_enc, value=x_value)
+        return x
+    
+    def encode(self, x_enc):
+       x_enc = self.emb(x_enc)
+       x_enc = self.enc_3(self.enc_2(self.enc_1(x_enc)))
+       return x_enc
+    
+    def decode(self, x_dec, x_enc):
+       x_dec = self.emb(x_dec)
+       x_dec = self.dec_2(self.dec_1(x_dec, x_enc), x_enc)
+       return x_dec
