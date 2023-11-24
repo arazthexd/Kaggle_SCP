@@ -64,3 +64,5 @@ data/temp/adata_1200.csv
 data/temp/adata_1300.csv
 data/temp/adata_1400.csv
 data/temp/adata_1500.csv
+data/de_val.npy
+data/de_train.npy

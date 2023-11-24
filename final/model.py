@@ -11,11 +11,31 @@ from tqdm import tqdm
 
 class ContPert2DE(nn.Module):
 
-    def __init__(self, c2p_model, layers_sizes, out_dim) -> None:
+    def __init__(self, c2p_model, in_dim, layers_sizes, out_dim) -> None:
+        super().__init__()
         
         self.c2p_model = c2p_model
-        self.layers = nn.ModuleList()
-        for layers_sizes
+        self.layers = nn.ModuleList(
+            [nn.Linear(in_dim, layers_sizes[0])] + \
+            [nn.Linear(layers_sizes[i], layers_sizes[i+1]) for i in range(len(layers_sizes)-1)] + \
+            [nn.Linear(layers_sizes[-1], out_dim)]
+        )
+
+        self.activation = nn.ReLU()
+        self.drop = nn.Dropout(0.2)
+
+    def forward(self, x, pert, device):
+
+        with torch.no_grad():
+            x = self.c2p_model(x, pert, device)
+        self.to(device)
+        for layer in self.layers[:-1]:
+            x = layer(x)
+            x = self.drop(x)
+            x = self.activation(x)
+        x = self.layers[-1](x)
+
+        return x
 
 
 class Control2Pert(nn.Module):

@@ -17,7 +17,8 @@ class C2PDataset(Dataset):
         self.control_val, self.control_train = control_array[:, 4:], control_array[:, :4]
         self.gene_names_control = np.array(meta_dict["gene_names"])[gene_idx]
         data_pert = np.delete(data_array, meta_dict["mols"].index("Dimethyl Sulfoxide"), axis=1)
-        self.data_val, self.data_train = data_pert[:, :, 4:], data_pert[:, :, :4]
+        self.data_val, self.data_train = (data_pert[gene_idx, :, 4:] - np.expand_dims(self.control_val, axis=1), 
+                                          data_pert[gene_idx, :, :4] - np.expand_dims(self.control_train, axis=1))
         self.mask_val, self.mask_train = self.data_val>0, self.data_train>0
 
         self.meta_dict = meta_dict
@@ -126,6 +127,37 @@ class C2PDataset(Dataset):
                 return (x_cell.float(), x_sm.float()), (y.float(), y_mask.float())
             else:
                 return x_cell.float(), x_sm.float()
+
+class CP2DEDataset(Dataset):
+
+    def __init__(self, data_array, c2p_dataset) -> None:
+        super().__init__()
+
+        self.data_array = data_array
+        self.c2p_dataset = c2p_dataset
+
+        self.idx_dict = {
+            i: (i % self.data_array.shape[2], i % self.data_array.shape[2]) \
+                for i in range(self.data_array.shape[2]*self.data_array.shape[1])
+        }
+    
+    def __len__(self):
+        return self.data_array.shape[1] * self.data_array.shape[2]
+    
+    def __getitem__(self, index):
+        
+        if type(index) == int:
+            cell_ind, mol_ind = self.idx_dict[index]
+            out = (self.c2p_dataset[index],
+                   torch.tensor(self.data_array[:, mol_ind, cell_ind].squeeze()))
+            return out
+        
+        out = []
+        for i in index:
+            cell_ind, mol_ind = self.idx_dict[i]
+            out.append(torch.tensor(self.data_array[:, mol_ind, cell_ind].squeeze()))
+        return self.c2p_dataset[index], torch.stack(out, dim=0)
+        
 
 
 def stratified_split(stratify, test_size, seed):

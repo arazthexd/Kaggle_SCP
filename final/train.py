@@ -6,10 +6,10 @@ from tqdm import tqdm
 import torch
 
 ### FUNCTIONS ###
-def loss_mrrmse(y_pred, y_true, mask=None):
+def loss_mrrmse(y_pred, y_true, mask=None, device="cuda:0"):
 
     if mask == None:
-        mask = torch.ones(y_pred.shape)
+        mask = torch.ones(y_pred.shape).to(device)
     loss = mask * ((y_true - y_pred) ** 2)
     n = mask.sum(1)
     loss = loss.sum(dim=1)[n!=0] / n[n!=0]
@@ -18,7 +18,7 @@ def loss_mrrmse(y_pred, y_true, mask=None):
 
     return loss
 
-def train_one_epoch(model, train_loader, loss_fn, 
+def train_one_epoch(model, train_loader, process_batch, 
                     optimizer, device):
 
     # Send model to device
@@ -30,13 +30,14 @@ def train_one_epoch(model, train_loader, loss_fn,
     # Iterate over batches and take optimization steps
     losses = []
     for batch in train_loader:
+        
+        loss = process_batch(batch)
+        # x_batch, (y_batch, mask_batch) = batch
+        # y_batch = y_batch.to(device)
+        # mask_batch = mask_batch.to(device)
+        # y_pred = model(*x_batch, device) # TODO: Send to device the x in model?
 
-        x_batch, (y_batch, mask_batch) = batch
-        y_batch = y_batch.to(device)
-        mask_batch = mask_batch.to(device)
-        y_pred = model(*x_batch, device) # TODO: Send to device the x in model?
-
-        loss = loss_fn(y_pred, y_batch, mask_batch)
+        # loss = loss_fn(y_pred, y_batch, mask_batch)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -45,7 +46,7 @@ def train_one_epoch(model, train_loader, loss_fn,
      
     return losses
 
-def infer_model(model, data_loader, loss_fn, 
+def infer_model(model, data_loader, process_batch, 
                 metrics: dict, device, calculate_loss=False):
 
     data_len = len(data_loader)
@@ -66,19 +67,22 @@ def infer_model(model, data_loader, loss_fn,
         losses = []
         for batch in data_loader:
 
-            x_batch, (y_batch, mask_batch) = batch
-            y_batch = y_batch.to(device)
-            mask_batch = mask_batch.to(device)
-            # print(x_batch)
-            y_pred = model(*x_batch, device)
+            loss = process_batch(batch)
+            # x_batch, (y_batch, mask_batch) = batch
+            # y_batch = y_batch.to(device)
+            # mask_batch = mask_batch.to(device)
+            # # print(x_batch)
+            # y_pred = model(*x_batch, device)
 
-            if calculate_loss:
-                loss = loss_fn(y_pred, y_batch, mask_batch)
-                losses.append(loss)
+            # if calculate_loss:
+            #     loss = loss_fn(y_pred, y_batch, mask_batch)
+            #     losses.append(loss)
 
-            for metric_name in metrics:
-                metric_value = metrics[metric_name](y_pred, y_batch)
-                metric_values[metric_name] += (metric_value / data_len)
+            # for metric_name in metrics:
+            #     metric_value = metrics[metric_name](y_pred, y_batch)
+            #     metric_values[metric_name] += (metric_value / data_len)
+
+            losses.append(loss)
 
     if calculate_loss:
         return losses, metric_values
@@ -86,18 +90,18 @@ def infer_model(model, data_loader, loss_fn,
         return metric_values
         
 def train_many_epochs(model, train_loader, val_loader, epochs,
-                      loss_fn, optimizer, scheduler=None, 
+                      process_batch, optimizer, scheduler=None, 
                       metrics=[], writer=None, device="cpu"):
     
     for epoch in tqdm(range(epochs)):
 
         # Train model for one epoch and calculate metrics for the 
         # resulting model...
-        train_b_losses = train_one_epoch(model, train_loader, loss_fn, 
+        train_b_losses = train_one_epoch(model, train_loader, process_batch, 
                                          optimizer, device)
-        train_b_metrics = infer_model(model, train_loader, loss_fn, 
+        train_b_metrics = infer_model(model, train_loader, process_batch, 
                                       metrics, device)
-        val_b_losses, val_b_metrics = infer_model(model, val_loader, loss_fn, 
+        val_b_losses, val_b_metrics = infer_model(model, val_loader, process_batch, 
                                     metrics, device, calculate_loss=True)
         
         epoch_train_loss = sum(train_b_losses) / len(train_b_losses)
