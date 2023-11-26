@@ -26,8 +26,12 @@ class ContPert2DE(nn.Module):
 
     def forward(self, x, pert, device):
 
+        x = x.to(device)
+        pert = pert.to(device)
         with torch.no_grad():
-            x = self.c2p_model(x, pert, device)
+            self.c2p_model.eval()
+            x = self.c2p_model.encode(x)
+        x = torch.concat([x, pert], dim=1)
         self.to(device)
         for layer in self.layers[:-1]:
             x = layer(x)
@@ -66,7 +70,7 @@ class Control2Pert(nn.Module):
         self.mode = "normal"
     
     def encode(self, x):
-        x = self.enc_layer(x)
+        x = self.enc_layer(x.float())
         return x
     
     def decode(self, x, pert):
