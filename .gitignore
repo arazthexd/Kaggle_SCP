@@ -69,3 +69,4 @@ data/de_train.npy
 final/mol_ae.pt
 final/cell_ae.pt
 .gitignore
+data/temp/ATAC_train.parquet
