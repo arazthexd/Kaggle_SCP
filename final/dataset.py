@@ -12,13 +12,13 @@ class C2PDataset(Dataset):
         super(C2PDataset, self).__init__()
         
         data_initial = data_array[:, meta_dict["mols"].index("Dimethyl Sulfoxide"), :].squeeze()
-        gene_idx = (data_initial>0).sum(1)==6
-        control_array = data_initial[gene_idx, :] # 16k x 6
+        self.gene_idx = (data_initial>0).sum(1)==6
+        control_array = data_initial[self.gene_idx, :] # 16k x 6
         self.control_val, self.control_train = control_array[:, 4:], control_array[:, :4]
-        self.gene_names_control = np.array(meta_dict["gene_names"])[gene_idx]
+        self.gene_names_control = np.array(meta_dict["gene_names"])[self.gene_idx]
         data_pert = np.delete(data_array, meta_dict["mols"].index("Dimethyl Sulfoxide"), axis=1)
-        self.data_val, self.data_train = (data_pert[gene_idx, :, 4:] - np.expand_dims(self.control_val, axis=1), 
-                                          data_pert[gene_idx, :, :4] - np.expand_dims(self.control_train, axis=1))
+        self.data_val, self.data_train = (data_pert[self.gene_idx, :, 4:] - np.expand_dims(self.control_val, axis=1), 
+                                          data_pert[self.gene_idx, :, :4] - np.expand_dims(self.control_train, axis=1))
         self.mask_val, self.mask_train = self.data_val>0, self.data_train>0
 
         self.meta_dict = meta_dict
@@ -32,11 +32,11 @@ class C2PDataset(Dataset):
         self.cell_types = meta_dict["cell_types"]
 
         self.idx_dict_train = {
-            i: (i % self.data_train.shape[2], i % self.data_train.shape[2]) \
+            i: (i % self.data_train.shape[2], i // self.data_train.shape[2]) \
                 for i in range(self.data_train.shape[2]*self.data_train.shape[1])
         }
         self.idx_dict_val = {
-            i: (i % self.data_val.shape[2], i % self.data_val.shape[2]) \
+            i: (i % self.data_val.shape[2], i // self.data_val.shape[2]) \
                 for i in range(self.data_val.shape[2]*self.data_val.shape[1])
         }
 
@@ -137,7 +137,7 @@ class CP2DEDataset(Dataset):
         self.c2p_dataset = c2p_dataset
 
         self.idx_dict = {
-            i: (i % self.data_array.shape[2], i % self.data_array.shape[2]) \
+            i: (i % self.data_array.shape[2], i // self.data_array.shape[2]) \
                 for i in range(self.data_array.shape[2]*self.data_array.shape[1])
         }
     

@@ -66,3 +66,6 @@ data/temp/adata_1400.csv
 data/temp/adata_1500.csv
 data/de_val.npy
 data/de_train.npy
+final/mol_ae.pt
+final/cell_ae.pt
+.gitignore
